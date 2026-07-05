@@ -1,10 +1,11 @@
+import hashlib
 import numpy as np
 from pypdf import PdfReader
 from langchain_core.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 from langchain_classic.chains import RetrievalQA
 from dotenv import load_dotenv
-
+from functools import lru_cache
 import os
 import easyocr
 from pdf2image import convert_from_path
@@ -16,6 +17,10 @@ from langchain_core.documents import Document
 from langchain_classic.chains import ConversationalRetrievalChain
 from langchain_classic.memory import ConversationBufferMemory
 
+CACHE_DIR = "cache"
+FAISS_CACHE_DIR = os.path.join(CACHE_DIR, "faiss")
+
+os.makedirs(FAISS_CACHE_DIR, exist_ok=True)
 load_dotenv()
 
 reader_ocr = easyocr.Reader(['en'], gpu=False)
@@ -150,6 +155,8 @@ def extract_text_with_ocr(filepath):
     return text
 
 
+
+
 def load_and_chunk(file_paths,chunk_size=500,chunk_overlap=50):
 
     all_docs = []
@@ -197,14 +204,46 @@ def load_and_chunk(file_paths,chunk_size=500,chunk_overlap=50):
             
 
     return all_docs
+
+def get_pdf_hash(file_paths):
+    md5 = hashlib.md5()
+
+    for file in file_paths:
+        with open(file["path"], "rb") as f:
+            md5.update(f.read())
+
+    return md5.hexdigest()
+
+@lru_cache(maxsize=1)
+def get_embeddings():
+
+    print("Loading embedding model...")
+
+    return HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2"
+    )
    
 
 #SBuild FAISS vector store
-def build_vectorstore(docs, force_rebuild=False):
+def build_vectorstore(docs,pdf_hash=None, force_rebuild=False):
 
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2"
-    )
+    embeddings = get_embeddings()
+    cache_path = os.path.join(
+        FAISS_CACHE_DIR,
+        pdf_hash
+    )if pdf_hash else None  
+    if (
+        pdf_hash
+        and os.path.exists(cache_path)
+        and not force_rebuild
+    ):
+        print("⚡ Loading cached FAISS...")
+
+        return FAISS.load_local(
+            cache_path,
+            embeddings,
+            allow_dangerous_deserialization=True
+        )
 
     print("Building FAISS index...")
 
@@ -212,6 +251,9 @@ def build_vectorstore(docs, force_rebuild=False):
         docs,
         embeddings
     )
+    if pdf_hash:
+        vectorstore.save_local(cache_path)
+
 
     return vectorstore
 # def build_vectorstore(docs, index_path="faiss_index", force_rebuild=False):

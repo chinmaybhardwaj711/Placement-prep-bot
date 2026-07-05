@@ -7,7 +7,8 @@ from rag_core import (
     load_and_chunk,
     build_vectorstore,
     get_chain_with_memory,
-    retrieve_with_scores
+    retrieve_with_scores,
+    get_pdf_hash
 
 )
 
@@ -94,12 +95,30 @@ if process_btn:
                         }
                     )
 
+            # chunks = load_and_chunk(temp_files)
+
+            # vectorstore = build_vectorstore(
+            #     chunks,
+            #     force_rebuild=True
+            # )
+           
+            pdf_hash = get_pdf_hash(temp_files)
             chunks = load_and_chunk(temp_files)
 
             vectorstore = build_vectorstore(
                 chunks,
-                force_rebuild=True
+                pdf_hash=pdf_hash
             )
+
+
+            # vectorstore = load_cached_vectorstore(pdf_hash)
+
+            # if vectorstore is None:
+            #     chunks = load_and_chunk(temp_files)
+            #     vectorstore = build_vectorstore(
+            #         chunks,
+            #         pdf_hash=pdf_hash
+            #     )
 
             st.session_state.vectorstore = vectorstore
 
