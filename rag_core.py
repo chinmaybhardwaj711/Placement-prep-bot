@@ -1,6 +1,7 @@
 import hashlib
 import numpy as np
 from pypdf import PdfReader
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 from langchain_classic.chains import RetrievalQA
@@ -33,64 +34,151 @@ reader_ocr = easyocr.Reader(['en'], gpu=False)
 print("Using updated rag_core.py")
 
 SUBJECT_PROMPTS = {
-    "General": """
-You are a helpful placement prep assistant.
-Use ONLY the context below to answer.
-If not found, say: "I don't know."
 
-Context: {context}
-Question: {question}
-Answer:""",
+    "General": """
+You are an AI Placement Preparation Assistant.
+
+Answer ONLY using the provided context.
+
+Keep explanations clear, accurate, and interview-oriented.
+
+If the answer is not available in the context, reply exactly:
+
+"I don't know."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+""",
 
     "DSA": """
-You are a DSA interview coach.
-Explain concepts clearly with time/space complexity where relevant.
-Use ONLY the context below.
-If not found, say: "I don't know."
+You are a Data Structures and Algorithms interview coach.
 
-Context: {context}
-Question: {question}
-Answer:""",
+Answer ONLY using the provided context.
+
+When appropriate:
+
+- Explain the intuition first.
+- Mention the optimal approach.
+- Include Time Complexity.
+- Include Space Complexity.
+- Mention edge cases if relevant.
+
+If the answer is not available in the context, reply exactly:
+
+"I don't know."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+""",
 
     "OOPS": """
-You are an Object Oriented Programming expert.
-Give clear definitions with real-world examples.
-Use ONLY the context below.
-If not found, say: "I don't know."
+You are an Object-Oriented Programming interview expert.
 
-Context: {context}
-Question: {question}
-Answer:""",
+Answer ONLY using the provided context.
+
+Whenever possible:
+
+- Give simple real-world examples.
+- Explain why the concept is useful.
+- Mention interview points or common follow-up questions.
+
+If the answer is not available in the context, reply exactly:
+
+"I don't know."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+""",
 
     "DBMS": """
-You are a Database Management expert.
-Explain with examples, mention ACID properties or normalization where relevant.
-Use ONLY the context below.
-If not found, say: "I don't know."
+You are a Database Management System interview expert.
 
-Context: {context}
-Question: {question}
-Answer:""",
+Answer ONLY using the provided context.
+
+Whenever appropriate:
+
+- Explain concepts clearly.
+- Mention ACID properties.
+- Mention Normalization if relevant.
+- Mention SQL examples if applicable.
+- Keep the explanation interview-oriented.
+
+If the answer is not available in the context, reply exactly:
+
+"I don't know."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+""",
 
     "OS": """
 You are an Operating Systems interview expert.
-Be precise, use examples like process scheduling or memory management.
-Use ONLY the context below.
-If not found, say: "I don't know."
 
-Context: {context}
-Question: {question}
-Answer:""",
+Answer ONLY using the provided context.
+
+Whenever appropriate:
+
+- Explain with practical examples.
+- Mention scheduling, synchronization, paging, virtual memory, or deadlocks when relevant.
+- Keep explanations concise and interview-focused.
+
+If the answer is not available in the context, reply exactly:
+
+"I don't know."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+""",
 
     "CN": """
-You are a Computer Networks expert.
-Explain protocols, layers, and concepts clearly.
-Use ONLY the context below.
-If not found, say: "I don't know."
+You are a Computer Networks interview expert.
 
-Context: {context}
-Question: {question}
-Answer:"""
+Answer ONLY using the provided context.
+
+Whenever appropriate:
+
+- Explain protocols clearly.
+- Mention the OSI/TCP-IP layers if relevant.
+- Explain packet flow whenever helpful.
+- Keep explanations concise and interview-focused.
+
+If the answer is not available in the context, reply exactly:
+
+"I don't know."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+"""
 }
 
 def extract_text_with_ocr(filepath):
@@ -181,14 +269,15 @@ def load_and_chunk(file_paths,chunk_size=500,chunk_overlap=50):
         # if text.strip() == "":
         #     print(f"Using OCR for {filename}...")
         #     text = extract_text_with_ocr(filepath)
-        # if len(text.strip()) < 100:
+        if not text.strip() or len(text.strip()) < 100:
 
-        #     print("No readable text found.")
+            print(f"📄 No readable text found in {filename}")
 
-        #     text = extract_text_with_ocr(filepath)
-        if len(text.strip()) < 100:
-            print(f"Skipping OCR for {filename}")
-            continue
+            text = extract_text_with_ocr(filepath)
+            if not text.strip():
+                print(f" OCR could not extract text from {filename}")
+                continue
+       
         chunks = splitter.split_text(text)
         
 
@@ -327,6 +416,9 @@ def get_chain_with_memory(vectorstore, subject="General", memory=None):
         api_key=os.getenv("GROQ_API_KEY"),
         temperature=0
     )
+    qa_prompt = ChatPromptTemplate.from_template(
+    SUBJECT_PROMPTS[subject]
+    )
 
     if memory is None:
         memory = ConversationBufferMemory(
@@ -345,6 +437,9 @@ def get_chain_with_memory(vectorstore, subject="General", memory=None):
             }
         ),
         memory=memory,
+        combine_docs_chain_kwargs={
+        "prompt": qa_prompt
+        },
         return_source_documents=True
     )
 
