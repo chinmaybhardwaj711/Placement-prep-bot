@@ -15,6 +15,9 @@ A RAG-based AI assistant that answers placement interview questions from your ow
 
 Upload your PDFs (or even handwritten notes), pick a subject, and ask away.
 
+## 🚀 Live Demo
+🔗 [https://huggingface.co/spaces/Chinmay711/placement-prep-bot](https://huggingface.co/spaces/Chinmay711/placement-prep-bot)
+
 ---
 
 ## Why I built this
@@ -41,15 +44,42 @@ The bot also remembers your previous questions within a session, so you can ask 
 
 ---
 
+## Architecture
+
+```
+┌──────────────────────────── INGESTION PATH ────────────────────────────┐
+│                                                                         │
+│  PDF Upload → Text Extraction → Chunking → Embeddings → FAISS Index    │
+│               (pypdf / EasyOCR)  500 tok     MiniLM       hash cached  │
+│                                  50 overlap   L6-v2                     │
+└─────────────────────────────────────────────────────────────────────────┘
+                                                        │
+                                                  vector index
+                                                        │
+┌──────────────────────────── QUERY PATH ────────────────────────────────┐
+│                                                                         │
+│  User Query → Embed Query → MMR Retrieval → Groq Llama 3.1 → Answer   │
+│  + subject      same model    k=5              subject         + source │
+│    mode                       fetch_k=10        prompt          citations│
+│                                                                         │
+│  └──────────────── Conversation Memory (per session) ─────────────────┘│
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Features
 
-- **Multi-PDF support** — upload multiple documents at once, query across all of them
-- **Handwritten notes via OCR** — uses EasyOCR to extract text from scanned or photographed notes
-- **Conversational memory** — follow-up questions work, the bot remembers context
-- **Source citations** — every answer tells you which PDF it came from
-- **Retrieval transparency** — expand any answer to see the exact chunks that were retrieved, with similarity scores
-- **Subject modes** — switch between DSA, OOPS, DBMS, OS, CN, and General to get domain-appropriate explanations
-- **PDF hash caching** — same PDFs won't be re-embedded on re-upload, saves time
+- 📄 **Multi-PDF Retrieval** — upload multiple documents at once, query across all of them
+- 🔍 **Retrieval-Augmented Generation (RAG)** — answers grounded in your material, not generic training data
+- 🧠 **Conversational Memory** — follow-up questions work, context is preserved within a session
+- 📚 **Subject-Specific Prompting** — DSA coach, OOPS expert, DBMS specialist, OS and CN modes
+- 📊 **Similarity Score Visualization** — expand any answer to see retrieved chunks with scores
+- ⚡ **FAISS Vector Search with MMR** — diverse, high-quality retrieval over pure similarity
+- 💾 **PDF Hash Caching** — same PDFs won't be re-embedded on re-upload
+- 📝 **OCR for Handwritten Notes** — EasyOCR extracts text from scanned or photographed PDFs
+- 📑 **Source Citations** — every answer shows which document it came from
+- 🚀 **Deployed on Hugging Face Spaces** — accessible from anywhere, no setup needed
 
 ---
 
@@ -70,8 +100,8 @@ The bot also remembers your previous questions within a session, so you can ask 
 ## Running locally
 
 ```bash
-git clone https://github.com/Chinmay711/placement-prep-bot
-cd placement-prep-bot
+git clone https://github.com/chinmaybhardwaj711/Placement-prep-bot.git
+cd Placement-prep-bot
 
 python -m venv venv
 .\venv\Scripts\activate   # Windows
@@ -104,17 +134,17 @@ streamlit run app.py
 
 ---
 
-## Evaluation
+## 📊 Evaluation
 
-Ran a keyword-based evaluation across DSA, OOPS, and DBMS subject PDFs:
+The retrieval pipeline was evaluated on representative interview questions across DSA, OOPS, and DBMS using keyword-based matching against expected answer components.
 
-| Question | Subject | Score |
+| Subject | Question | Accuracy |
 |---|---|---|
-| What is the time complexity of binary search? | DSA | 67% |
-| What is polymorphism? | OOPS | 67% |
-| What are ACID properties? | DBMS | 100% |
+| DSA | What is the time complexity of binary search? | 67% |
+| OOPS | What is polymorphism? | 67% |
+| DBMS | What are ACID properties? | 100% |
 
-Scoring checks whether expected keywords appear in the answer. Full results in `eval_results.json`.
+Detailed results are available in `eval_results.json`.
 
 ---
 
@@ -143,6 +173,18 @@ Groq's inference is significantly faster and has a generous free tier. For a dem
 
 ---
 
-Built as part of a 15-day RAG from scratch project.
+## 👨‍💻 Author
+
+**Chinmay Bhardwaj**
+- GitHub: [github.com/chinmaybhardwaj711](https://github.com/chinmaybhardwaj711)
+- Hugging Face: [huggingface.co/Chinmay711](https://huggingface.co/Chinmay711)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
 
 **Stack:** Python · LangChain · FAISS · Groq · HuggingFace · Streamlit · EasyOCR
