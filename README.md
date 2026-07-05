@@ -1,19 +1,30 @@
 ---
 title: Placement Prep Bot
 emoji: 🚀
-colorFrom: red
-colorTo: red
-sdk: docker
-app_port: 8501
-tags:
-- streamlit
+colorFrom: blue
+colorTo: green
+sdk: streamlit
+sdk_version: 1.45.0
+app_file: app.py
 pinned: false
-short_description: 'SDK: Streamlit     Visibility: Public'
 ---
 
-# Welcome to Streamlit!
+# 🎯 Placement Prep Bot
 
-Edit `/src/streamlit_app.py` to customize this app to your heart's desire. :heart:
+An AI-powered RAG chatbot built using:
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+- LangChain
+- FAISS
+- Hugging Face Embeddings
+- Groq Llama 3.1
+- Streamlit
+- EasyOCR
+
+## Features
+
+- 📄 Multi-PDF upload
+- 🧠 Conversational memory
+- 🔍 Source citations
+- 📊 Retrieval scores
+- ✍️ OCR support for handwritten PDFs
+- 🎓 Subject-specific interview mode
